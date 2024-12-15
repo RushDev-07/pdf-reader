@@ -56,7 +56,6 @@ def get_vectorstore(text_chunks):
     Create a vector store for text chunks.
     """
     # You can choose OpenAI embeddings or HuggingFace embeddings
-   # embeddings = OpenAIEmbeddings(openai_api_key="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")
     embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
@@ -105,7 +104,7 @@ def handle_user_input(conversation, user_question):
 # Main function to run the chatbot
 if __name__ == '__main__':
     load_dotenv()
-    hf_token = os.getenv("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")  
+    hf_token = os.getenv("hugging face api")  
     folder_path = "SOURCE_DOCUMENTS"  # Replace with the path to your folder containing PDFs
     print("Processing PDFs in the folder...")
 
