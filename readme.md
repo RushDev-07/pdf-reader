@@ -1,4 +1,3 @@
-Here's a **README** file for the provided code along with **usage instructions**.
 
 ---
 
