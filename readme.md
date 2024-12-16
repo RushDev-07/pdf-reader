@@ -51,7 +51,7 @@ Place all PDF files to be processed in a folder named `SOURCE_DOCUMENTS` or upda
 ### **2. Run the Script**
 Run the chatbot script using the following command:
 ```bash
-python chatbot.py
+python app.py
 ```
 
 ### **3. Ask Questions**
