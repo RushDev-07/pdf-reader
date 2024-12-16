@@ -1,65 +1,135 @@
-# MultiPDF Chat App
+Here's a **README** file for the provided code along with **usage instructions**.
 
-> You can find the tutorial for this project on [YouTube](https://youtu.be/dXxQ0LR-3Hg).
+---
 
-## Introduction
-------------
-The MultiPDF Chat App is a Python application that allows you to chat with multiple PDF documents. You can ask questions about the PDFs using natural language, and the application will provide relevant responses based on the content of the documents. This app utilizes a language model to generate accurate answers to your queries. Please note that the app will only respond to questions related to the loaded PDFs.
+# **GestureBridge PDF Conversational Bot**
 
-## How It Works
-------------
+This project is a conversational bot that processes PDF files, extracts text, stores it in a vector database, and allows users to query the information in a conversational manner. It leverages **LangChain**, **FAISS**, and pre-trained models from **HuggingFace** to build an intelligent retrieval-based conversational system.
 
-![MultiPDF Chat App Diagram](./docs/PDF-LangChain.jpg)
+## **Features**
+- Extracts and processes text from PDF files in a folder.
+- Splits large texts into manageable chunks for efficient processing.
+- Embeds text chunks into vector space for similarity-based retrieval using FAISS.
+- Supports conversational retrieval using a HuggingFace pre-trained language model.
+- Provides real-time responses to user queries, maintaining conversational context.
 
-The application follows these steps to provide responses to your questions:
+---
 
-1. PDF Loading: The app reads multiple PDF documents and extracts their text content.
+## **Setup and Installation**
 
-2. Text Chunking: The extracted text is divided into smaller chunks that can be processed effectively.
+### **1. Prerequisites**
+Ensure you have the following installed:
+- **Python 3.8+**
+- Pip for managing Python packages.
 
-3. Language Model: The application utilizes a language model to generate vector representations (embeddings) of the text chunks.
-
-4. Similarity Matching: When you ask a question, the app compares it with the text chunks and identifies the most semantically similar ones.
-
-5. Response Generation: The selected chunks are passed to the language model, which generates a response based on the relevant content of the PDFs.
-
-## Dependencies and Installation
-----------------------------
-To install the MultiPDF Chat App, please follow these steps:
-
-1. Clone the repository to your local machine.
-
-2. Install the required dependencies by running the following command:
-   ```
-   pip install -r requirements.txt
-   ```
-
-3. Obtain an API key from OpenAI and add it to the `.env` file in the project directory.
-```commandline
-OPENAI_API_KEY=your_secrit_api_key
+### **2. Clone the Repository**
+```bash
+git clone <repository-url>
+cd <repository-folder>
 ```
 
-## Usage
------
-To use the MultiPDF Chat App, follow these steps:
+### **3. Install Required Python Packages**
+Install dependencies from the `requirements.txt` file:
+```bash
+pip install -r requirements.txt
+```
 
-1. Ensure that you have installed the required dependencies and added the OpenAI API key to the `.env` file.
+### **4. Configure Environment Variables**
+Create a `.env` file in the root directory and add your **HuggingFace API token**:
+```env
+HF_TOKEN=<your_huggingface_api_token>
+```
 
-2. Run the `main.py` file using the Streamlit CLI. Execute the following command:
-   ```
-   streamlit run app.py
-   ```
+Replace `<your_huggingface_api_token>` with your HuggingFace API key.
 
-3. The application will launch in your default web browser, displaying the user interface.
+---
 
-4. Load multiple PDF documents into the app by following the provided instructions.
+## **Usage Instructions**
 
-5. Ask questions in natural language about the loaded PDFs using the chat interface.
+### **1. Organize PDFs**
+Place all PDF files to be processed in a folder named `SOURCE_DOCUMENTS` or update the `folder_path` variable in the code to point to your folder.
 
-## Contributing
-------------
-This repository is intended for educational purposes and does not accept further contributions. It serves as supporting material for a YouTube tutorial that demonstrates how to build this project. Feel free to utilize and enhance the app based on your own requirements.
+### **2. Run the Script**
+Run the chatbot script using the following command:
+```bash
+python chatbot.py
+```
 
-## License
--------
-The MultiPDF Chat App is released under the [MIT License](https://opensource.org/licenses/MIT).
+### **3. Ask Questions**
+Once the bot processes the PDFs, you can start asking questions based on the content of the documents.
+
+Example:
+```text
+User: What is the builder's name for the project in the document?
+Bot: The builder's name is METRO DEVELOPERS.
+```
+
+### **4. Exit**
+Type `exit` or `quit` to terminate the chatbot.
+
+---
+
+## **Code Workflow**
+
+1. **PDF Processing**:
+   - The bot reads and extracts text from all PDFs in the specified folder.
+   - Text is split into smaller chunks using LangChain's `CharacterTextSplitter`.
+
+2. **Embedding Creation**:
+   - Uses HuggingFace's `Instructor-XL` embeddings to convert text chunks into vector representations.
+   - The vectors are stored in a FAISS vector database for efficient similarity-based retrieval.
+
+3. **Conversational Retrieval**:
+   - Queries are processed by a conversational retrieval chain using `Flan-T5-XXL`, a HuggingFace model.
+   - Memory is maintained to provide contextual responses.
+
+4. **Response Handling**:
+   - The bot generates responses based on user queries and maintains context throughout the conversation.
+
+---
+
+## **Key Components**
+
+### **1. Libraries Used**
+- **LangChain**: For text chunking, embeddings, and conversational chains.
+- **FAISS**: For vector database storage and retrieval.
+- **PyPDF2**: For extracting text from PDFs.
+- **HuggingFace Hub**: For pre-trained embeddings and LLMs.
+
+### **2. Models**
+- **HuggingFace Instructor-XL**: For generating text embeddings.
+- **Flan-T5-XXL**: For conversational retrieval and response generation.
+
+---
+
+## **Extending the Bot**
+- **Add New Models**: Replace `HuggingFaceInstructEmbeddings` or `Flan-T5-XXL` with other embeddings or language models.
+- **Custom Retrieval Logic**: Modify `get_conversation_chain` to use different retrievers or chains.
+
+---
+
+## **Troubleshooting**
+
+1. **Missing API Key**:
+   - Ensure your `.env` file contains the correct HuggingFace API token.
+
+2. **PDF Parsing Errors**:
+   - Some PDFs may not extract text correctly. Ensure your PDFs are not scanned images.
+
+3. **Slow Response**:
+   - Use smaller models or reduce the chunk size in `CharacterTextSplitter` for faster processing.
+
+---
+
+## **Contributors**
+- **Author**: Your Name
+- **Email**: your.email@example.com
+
+---
+
+## **License**
+This project is licensed under the [MIT License](LICENSE).
+
+--- 
+
+This README provides detailed instructions to set up, use, and extend the project while addressing potential issues and features.
