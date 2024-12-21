@@ -1,37 +1,49 @@
 import os
-import re
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from huggingface_hub import login
+import torch
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from transformers import LlamaForCausalLM, LlamaTokenizer
 from langchain.llms import HuggingFacePipeline
 from dotenv import load_dotenv
-import torch
 
 load_dotenv()
 
 # Load environment variables
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
-# Function to initialize LLaMA 70B
-def load_llama_model(model_name="meta-llama/Llama-2-70b-chat-hf", device="cuda"):
+
+# Load Falcon model instead of LLaMA
+
+
+def load_falcon_model(model_name="tiiuae/falcon-7b-instruct", device="cuda"):
     try:
         print(f"Loading {model_name} model...")
-        tokenizer = LlamaTokenizer.from_pretrained(model_name)
-        model = LlamaForCausalLM.from_pretrained(
+
+        # Ensure HuggingFace authentication for downloading private models
+        login(HUGGINGFACE_API_KEY)
+
+        # Load the tokenizer and model using the Auto class
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.float16,  # Use float16 for efficient inference
-            device_map="auto",  # Automatically map model across GPUs
+            device_map="auto",         # Automatically map model across GPUs
+            low_cpu_mem_usage=True     # Optimize memory usage for large models
         )
+
         print("Model successfully loaded!")
         return tokenizer, model
     except Exception as e:
-        print(f"Error loading LLaMA model: {e}")
+        print(f"Error loading Falcon model: {e}")
         return None, None
 
-# Convert LLaMA into a LangChain-compatible pipeline
-def get_llama_pipeline(model, tokenizer):
+
+
+# Set up Falcon pipeline
+def get_falcon_pipeline(model, tokenizer):
     try:
         from transformers import pipeline
 
@@ -47,8 +59,9 @@ def get_llama_pipeline(model, tokenizer):
         llm = HuggingFacePipeline(pipeline=pipe)
         return llm
     except Exception as e:
-        print(f"Error setting up LLaMA pipeline: {e}")
+        print(f"Error setting up Falcon pipeline: {e}")
         return None
+
 
 # Create FAISS vector store
 def create_vector_store(chunks):
@@ -61,6 +74,7 @@ def create_vector_store(chunks):
         print(f"Error creating vector store: {e}")
         return None
 
+
 # Set up the conversational retrieval chain
 def setup_conversation_chain(vectorstore, llm):
     try:
@@ -72,22 +86,66 @@ def setup_conversation_chain(vectorstore, llm):
         print(f"Error setting up conversation chain: {e}")
         return None
 
-# Main function to process PDFs and run the pipeline
+
+# Process PDF files
+def get_pdf_text_from_folder(folder_path):
+    try:
+        from PyPDF2 import PdfReader
+        all_text = ""
+        for filename in os.listdir(folder_path):
+            if filename.endswith(".pdf"):
+                pdf_path = os.path.join(folder_path, filename)
+                print(f"Processing: {pdf_path}")
+                reader = PdfReader(pdf_path)
+                for page in reader.pages:
+                    all_text += page.extract_text()
+        return all_text
+    except Exception as e:
+        print(f"Error reading PDFs: {e}")
+        return ""
+
+
+# Chunk large text into smaller pieces
+def get_text_chunks(text):
+    try:
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        return splitter.split_text(text)
+    except Exception as e:
+        print(f"Error splitting text into chunks: {e}")
+        return []
+
+
+# Single input mode
+def single_input_mode(conversation_chain):
+    try:
+        question = (
+            'Get the information from both the documents and store it into the following attributes in a JSON format:' + \
+        'isCompany       lastModified    lat     lng     rera    builderName     builderPhone    builderUrl      builderBlockNumber      builderBuildingName     builderStreet   builderLocality builderLandMark builderState    builderDivision builderDistrict builderTaluka   builderVillage  builderPincode  projectName     status  proposedClosingDate     revisedClosingDate      litigation      projectType     projectPlotNo   projectState    projectDivision projectDistrict projectTaluka   projectVillage  projectStreet   projectLocality projectPincode  area    totalBuildings  sanctionedBuildings     unsanctionedBuildings   openArea        sanctionedFSI   proposedFSI     permissibleFSI  developmentWork buildingDetailsWithAppartments  brokerReras rera_date' + \
+        'This is a sample data in with the above attributes' + \
+        'TRUE    Last Modified                   P99000053639    METRO DEVELOPERS        9619304514              OFFICE NO. 1    LAKE VIEW HEIGHTS 1     LAKE VIEW HEIGHTS 1     RAJIWALI VILLAGE        MARUAAI TEMPLE  MAHARASHTRA     Konkan  Palghar Vasai   Vasai-Virar City (M Corp)       401208  HONEST HEIGHTS  New Project     31-12-2027              No      Others  SURVEY NO 232B, PLOT NO 3       MAHARASHTRA     Konkan  Palghar Vasai   Pelhar  PELHAR  PELHAR  401208  162.57  1       1       0       16.26   1198.66 0       1198.66 [{"name":"Internal Roads & Footpaths :","details":"-"},{"name":"Water Conservation, Rain water Harvesting :","details":"-"},{"name":"Energy management :","details":"NA"},{"name":"Fire Protection And Fire Safety \nRequirements :","details":"--"},{"name":"Electrical Meter Room, Sub-Station, Receiving Station :","details":"-"},{"name":"Aggregate area of recreational Open Space  :","details":"-"},{"name":"Open Parking :","details":"-"},{"name":"Water Supply :","details":"-"},{"name":"Sewerage (Chamber, Lines, Septic Tank , STP) :","details":"-"},{"name":"Storm Water Drains :","details":"-"},{"name":"Landscaping & Tree Planting :","details":"-"},{"name":"Street Lighting :","details":"-"},{"name":"Community Buildings :","details":"NA"},{"name":"Treatment And Disposal Of Sewage And Sullage Water :","details":"NA"},{"name":"Solid Waste Management And Disposal :","details":"-"}]      [{"name":"BUILDING NO 7","proposedCompletionDate":"31/12/2027","basements":"0","plinths":"0","podiums":"0","floors":"7","stilts":"0","openParkings":"0","closedParkings":"0","appartments":[{"name":"Shop","carpetArea":"11.15","totalAppartments":"1","bookedAppartments":"0"},{"name":"Shop","carpetArea":"18.59","totalAppartments":"1","bookedAppartments":"0"},{"name":"Shop","carpetArea":"14.87","totalAppartments":"1","bookedAppartments":"0"},{"name":"Shop","carpetArea":"16.26","totalAppartments":"1","bookedAppartments":"0"},{"name":"1RK","carpetArea":"23.23","totalAppartments":"7","bookedAppartments":"0"},{"name":"1BHK","carpetArea":"32.06","totalAppartments":"7","bookedAppartments":"0"},{"name":"1BHK","carpetArea":"32.99","totalAppartments":"7","bookedAppartments":"0"},{"name":"1BHK","carpetArea":"34.39","totalAppartments":"7","bookedAppartments":"0"}],"tasks":"0,0,0,0,0,0,0,0,0,0,0"}]   []'
+        )
+        response = conversation_chain.run(question)
+        print("\nResponse:", response)
+    except Exception as e:
+        print(f"Error generating response: {e}")
+
+
+# Main function
 def main():
     folder_path = "SOURCE_DOCUMENTS"  # Replace with your folder path
 
-    # Load and process LLaMA model
-    tokenizer, model = load_llama_model()
+    # Load and process Falcon model
+    tokenizer, model = load_falcon_model()
     if not model or not tokenizer:
-        print("Failed to load LLaMA model.")
+        print("Failed to load Falcon model.")
         return
 
-    llm = get_llama_pipeline(model, tokenizer)
+    llm = get_falcon_pipeline(model, tokenizer)
     if not llm:
-        print("Failed to set up LLaMA pipeline.")
+        print("Failed to set up Falcon pipeline.")
         return
 
-    # Process PDFs
+    # Extract and process text from PDFs
     pdf_text = get_pdf_text_from_folder(folder_path)
     if not pdf_text.strip():
         print("No text extracted from PDFs.")
@@ -110,31 +168,9 @@ def main():
         print("Failed to set up conversation chain.")
         return
 
-    # Interact with the user
-    print("Conversation chain is ready. Ask your questions.")
-    while True:
-        question = input("\nEnter your question (or type 'exit' to quit): ")
-        if question.lower() == "exit":
-            break
-        response = conversation_chain.run(question)
-        print("\nResponse:", response)
+    # Process user query
+    single_input_mode(conversation_chain)
 
-# Helper functions
-def get_pdf_text_from_folder(folder_path):
-    from PyPDF2 import PdfReader
-    all_text = ""
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".pdf"):
-            pdf_path = os.path.join(folder_path, filename)
-            print(f"Processing: {pdf_path}")
-            reader = PdfReader(pdf_path)
-            for page in reader.pages:
-                all_text += page.extract_text()
-    return all_text
-
-def get_text_chunks(text):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    return splitter.split_text(text)
 
 if __name__ == "__main__":
     main()
