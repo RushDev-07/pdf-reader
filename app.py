@@ -14,10 +14,7 @@ load_dotenv()
 # Load environment variables
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
-
 # Load Falcon model instead of LLaMA
-
-
 def load_falcon_model(model_name="tiiuae/falcon-7b-instruct", device="cuda"):
     try:
         print(f"Loading {model_name} model...")
@@ -34,12 +31,14 @@ def load_falcon_model(model_name="tiiuae/falcon-7b-instruct", device="cuda"):
             low_cpu_mem_usage=True     # Optimize memory usage for large models
         )
 
+        # Load model weights separately for security
+        model.load_state_dict(torch.load('path_to_your_model/pytorch_model.bin', map_location=torch.device('cpu'), weights_only=True))
+
         print("Model successfully loaded!")
         return tokenizer, model
     except Exception as e:
         print(f"Error loading Falcon model: {e}")
         return None, None
-
 
 
 # Set up Falcon pipeline
@@ -115,7 +114,6 @@ def get_text_chunks(text):
         return []
 
 
-
 # Single input mode
 def single_input_mode(conversation_chain):
     try:
@@ -163,21 +161,20 @@ def main():
         print("No chunks created from the text.")
         return
 
-    # Create vector store
+    # Create FAISS vector store
     vectorstore = create_vector_store(chunks)
     if not vectorstore:
         print("Failed to create vector store.")
         return
 
-    # Set up conversational retrieval chain
+    # Set up conversational chain
     conversation_chain = setup_conversation_chain(vectorstore, llm)
     if not conversation_chain:
         print("Failed to set up conversation chain.")
         return
 
-    # Process user query
+    # Enable single input mode for querying
     single_input_mode(conversation_chain)
-
 
 if __name__ == "__main__":
     main()
