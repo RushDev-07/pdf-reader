@@ -32,7 +32,7 @@ def load_falcon_model(model_name="tiiuae/falcon-7b-instruct", device="cuda"):
         )
 
         # Load model weights separately for security
-        model.load_state_dict(torch.load('path_to_your_model/pytorch_model.bin', map_location=torch.device('cpu'), weights_only=True))
+        #model.load_state_dict(torch.load('path_to_your_model/pytorch_model.bin', map_location=torch.device('cpu'), weights_only=True))
 
         print("Model successfully loaded!")
         return tokenizer, model
@@ -50,10 +50,11 @@ def get_falcon_pipeline(model, tokenizer):
             "text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_length=512,
+            max_new_tokens=50,
             temperature=0.7,
             top_p=0.95,
             repetition_penalty=1.2,
+            do_sample = True
         )
         llm = HuggingFacePipeline(pipeline=pipe)
         return llm
