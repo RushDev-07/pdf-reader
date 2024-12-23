@@ -30,21 +30,25 @@ def load_falcon_model(model_name="tiiuae/falcon-7b-instruct", device="cuda"):
             device_map="auto",         # Automatically map model across GPUs
             low_cpu_mem_usage=True     # Optimize memory usage for large models
         )
-
-        # Load model weights separately for security
-        #model.load_state_dict(torch.load('path_to_your_model/pytorch_model.bin', map_location=torch.device('cpu'), weights_only=True))
-
+        tokenizer.pad_token_id = tokenizer.eos_token_id
         print("Model successfully loaded!")
         return tokenizer, model
     except Exception as e:
         print(f"Error loading Falcon model: {e}")
         return None, None
 
-
 # Set up Falcon pipeline
 def get_falcon_pipeline(model, tokenizer):
     try:
         from transformers import pipeline
+
+        def preprocess_input(input_text):
+            # Tokenize input with truncation
+            input_ids = tokenizer(
+                input_text, return_tensors="pt", truncation=True,
+                max_length=model.config.max_position_embeddings
+            )
+            return input_ids
 
         pipe = pipeline(
             "text-generation",
@@ -54,14 +58,13 @@ def get_falcon_pipeline(model, tokenizer):
             temperature=0.7,
             top_p=0.95,
             repetition_penalty=1.2,
-            do_sample = True
+            do_sample=True
         )
         llm = HuggingFacePipeline(pipeline=pipe)
         return llm
     except Exception as e:
         print(f"Error setting up Falcon pipeline: {e}")
         return None
-
 
 # Create FAISS vector store
 def create_vector_store(chunks):
@@ -74,7 +77,6 @@ def create_vector_store(chunks):
         print(f"Error creating vector store: {e}")
         return None
 
-
 # Set up the conversational retrieval chain
 def setup_conversation_chain(vectorstore, llm):
     try:
@@ -85,7 +87,6 @@ def setup_conversation_chain(vectorstore, llm):
     except Exception as e:
         print(f"Error setting up conversation chain: {e}")
         return None
-
 
 # Process PDF files
 def get_pdf_text_from_folder(folder_path):
@@ -104,7 +105,6 @@ def get_pdf_text_from_folder(folder_path):
         print(f"Error reading PDFs: {e}")
         return ""
 
-
 # Chunk large text into smaller pieces
 def get_text_chunks(text):
     try:
@@ -113,8 +113,6 @@ def get_text_chunks(text):
     except Exception as e:
         print(f"Error splitting text into chunks: {e}")
         return []
-
-
 # Single input mode
 def single_input_mode(conversation_chain):
     try:
