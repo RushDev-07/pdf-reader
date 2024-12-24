@@ -1,8 +1,5 @@
-import openai
+from transformers import pipeline
 import pdfplumber
-
-# Initialize OpenAI API key
-openai.api_key = 'YOUR_OPENAI_API_KEY'
 
 # Extract text from PDF
 def extract_pdf_text(pdf_path):
@@ -12,17 +9,14 @@ def extract_pdf_text(pdf_path):
             text += page.extract_text()
     return text
 
-# Query OpenAI's GPT for a response based on PDF content
+# Query Hugging Face model for a response based on PDF content
 def chat_with_pdf(pdf_text, query):
-    prompt = f"Here is a PDF document content:\n{pdf_text}\n\nThe user asks: {query}\nAnswer the question based on the above document."
-
-    response = openai.Completion.create(
-        model="text-davinci-003",  # Or use the latest available model
-        prompt=prompt,
-        max_tokens=200
-    )
-
-    return response.choices[0].text.strip()
+    # Load a larger pre-trained question-answering model (e.g., BERT or RoBERTa)
+    qa_pipeline = pipeline("question-answering", model="bert-large-uncased")
+    
+    # Perform question-answering on the document content
+    result = qa_pipeline(question=query, context=pdf_text)
+    return result["answer"]
 
 # Main chatbot loop
 def pdf_chatbot(pdf_path):
